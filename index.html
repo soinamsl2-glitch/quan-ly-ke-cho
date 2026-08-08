@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Công Việc Kẻ Chợ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#1f4c30;--green2:#2d6a42;--cream:#f7f2e7;--gold:#c79a3b;--red:#9a2929;--text:#243126;--muted:#6c776d}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:linear-gradient(135deg,#f5f0e5,#e7efe5);color:var(--text)}
+header{background:linear-gradient(135deg,var(--green),#163723);color:#fff;padding:14px 18px;position:sticky;top:0;z-index:20;box-shadow:0 4px 18px #0002}
+.header{max-width:1180px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}.brand img{width:52px;height:52px;border-radius:12px;object-fit:contain;background:#fff}.brand h1{font-size:21px;margin:0}.brand small{opacity:.85}
+.clock{text-align:right;font-weight:700}.clock span{display:block;font-size:13px;font-weight:400;opacity:.8}
+main{max-width:1180px;margin:auto;padding:20px}
+.card{background:#ffffffed;border:1px solid #ffffffaa;border-radius:18px;padding:20px;box-shadow:0 8px 30px #24312612;margin-bottom:18px}
+h2,h3{margin-top:0}
+input,select,button{font:inherit} input,select{width:100%;padding:12px 13px;border:1px solid #cbd5ca;border-radius:10px;background:#fff;color:var(--text)}
+button{border:0;border-radius:10px;padding:11px 15px;background:var(--green2);color:#fff;font-weight:700;cursor:pointer;margin:3px}
+button.secondary{background:#e9eee9;color:var(--text)}button.danger{background:var(--red)}button.gold{background:var(--gold)}button:disabled{opacity:.5;cursor:not-allowed}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:15px}.tabs button{white-space:nowrap}.tabs button.active{background:var(--gold)}
+.hidden{display:none!important}.notice{padding:12px;border-radius:10px;background:#eef5ee;margin:10px 0}.error{background:#fdecec;color:#8b1e1e}.success{background:#eaf7ed;color:#206331}
+.auth{max-width:520px;margin:50px auto}.logo-big{width:110px;height:110px;display:block;margin:0 auto 15px;border-radius:20px;object-fit:contain;background:#fff}.center{text-align:center}
+.schedule-wrap,.table-wrap{overflow:auto}.schedule{display:grid;grid-template-columns:125px repeat(7,minmax(125px,1fr));min-width:1000px;border:1px solid #d8e0d7;border-radius:12px;overflow:hidden}
+.schedule>div{border-right:1px solid #d8e0d7;border-bottom:1px solid #d8e0d7;padding:10px;min-height:125px;background:#fff}.schedule .head{background:var(--green);color:#fff;text-align:center;font-weight:700;min-height:auto}.schedule .shift{background:#f1ead9;font-weight:700}.occupant{font-weight:800;color:var(--green)}.free{color:#748174;font-size:13px}
+table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:10px;border-bottom:1px solid #e1e7e0;text-align:left;vertical-align:top}th{background:#edf3ed}
+.rank{display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid #e1e7e0}.rank-num{width:34px;height:34px;border-radius:50%;background:var(--gold);display:grid;place-items:center;font-weight:800}
+.small{font-size:13px;color:var(--muted)}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf3ed;font-size:12px;font-weight:700}
+@media(max-width:700px){main{padding:12px}.form-grid{grid-template-columns:1fr}.clock{display:none}.brand h1{font-size:17px}.card{padding:15px}}
+</style>
+</head>
+<body>
+
+<header id="appHeader" class="hidden">
+  <div class="header">
+    <div class="brand">
+      <img id="logo" src="logo-quan.jpg" onerror="this.style.display='none'">
+      <div><h1>Công Việc Kẻ Chợ</h1><small id="userLabel"></small></div>
+    </div>
+    <div class="clock" id="clock"></div>
+  </div>
+</header>
+
+<main>
+<section id="authView" class="auth card">
+  <img class="logo-big" src="logo-quan.jpg" onerror="this.style.display='none'">
+  <div class="center"><h2>Công Việc Kẻ Chợ</h2><p>Quản lý nhân viên & đăng ký ca làm</p></div>
+  <div id="authMsg"></div>
+
+  <div id="loginForm">
+    <div class="form-grid">
+      <div class="full"><label>Gmail / Email</label><input id="loginEmail" type="email" placeholder="ten@gmail.com" autocomplete="email"></div>
+      <div class="full"><label>Mật khẩu</label><input id="loginPassword" type="password" placeholder="Mật khẩu" autocomplete="current-password"></div>
+    </div>
+    <br>
+    <button onclick="login()">Đăng nhập</button>
+    <button class="secondary" onclick="showRegister()">Đăng ký tài khoản</button>
+    <button class="secondary" onclick="resetPassword()">Quên mật khẩu</button>
+  </div>
+
+  <div id="registerForm" class="hidden">
+    <div class="form-grid">
+      <div class="full"><label>Họ và tên</label><input id="regName" placeholder="Nguyễn Văn A"></div>
+      <div class="full"><label>Gmail / Email</label><input id="regEmail" type="email" placeholder="ten@gmail.com" autocomplete="email"></div>
+      <div><label>Mật khẩu</label><input id="regPassword" type="password" placeholder="Tối thiểu 6 ký tự"></div>
+      <div><label>Nhập lại mật khẩu</label><input id="regPassword2" type="password"></div>
+    </div>
+    <br>
+    <button onclick="register()">Đăng ký</button>
+    <button class="secondary" onclick="showLogin()">Quay lại đăng nhập</button>
+  </div>
+
+  <div id="resetForm" class="hidden">
+    <div class="notice">Nhập Gmail để nhận link đặt lại mật khẩu.</div>
+    <input id="resetEmail" type="email" placeholder="ten@gmail.com">
+    <br><br>
+    <button onclick="sendReset()">Gửi link đặt lại</button>
+    <button class="secondary" onclick="showLogin()">Quay lại</button>
+  </div>
+</section>
+
+<section id="appView" class="hidden">
+  <div id="globalMsg"></div>
+  <div class="tabs">
+    <button id="tabSchedule" class="active" onclick="showTab('schedule')">📅 Lịch ca</button>
+    <button id="tabMine" onclick="showTab('mine')">🗓️ Ca của tôi</button>
+    <button id="tabRank" onclick="showTab('rank')">🏆 Xếp hạng giờ</button>
+    <button id="tabAdmin" class="hidden" onclick="showTab('admin')">👑 Quản trị</button>
+    <button id="tabAccount" onclick="showTab('account')">👤 Tài khoản</button>
+  </div>
+
+  <section id="scheduleTab" class="card">
+    <h2>Lịch đăng ký tuần</h2>
+    <p>Ca 1: 07:00–12:00 · Ca 2: 12:00–17:00 · Ca 3: 17:00–23:00</p>
+    <p class="small">Mỗi ca chỉ có 1 người được Admin duyệt. Nhân viên có thể đăng ký ca còn trống.</p>
+    <div class="schedule-wrap"><div id="schedule" class="schedule"></div></div>
+  </section>
+
+  <section id="mineTab" class="card hidden"><h2>Ca của tôi</h2><div id="mineList"></div></section>
+  <section id="rankTab" class="card hidden"><h2>🏆 Bảng xếp hạng giờ làm</h2><p>Chỉ tính ca đã được Admin duyệt.</p><div id="ranking"></div></section>
+
+  <section id="adminTab" class="card hidden">
+    <h2>👑 Quản trị</h2>
+    <h3>Nhân viên</h3>
+    <div class="table-wrap"><table><thead><tr><th>Nhân viên</th><th>Email</th><th>Trạng thái</th><th>Quyền</th><th>Thao tác</th></tr></thead><tbody id="employees"></tbody></table></div>
+    <hr>
+    <h3>Yêu cầu đăng ký ca</h3>
+    <div class="table-wrap"><table><thead><tr><th>Nhân viên</th><th>Ngày</th><th>Ca</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="requests"></tbody></table></div>
+  </section>
+
+  <section id="accountTab" class="card hidden">
+    <h2>Tài khoản</h2>
+    <div id="accountInfo"></div>
+    <h3>Đổi mật khẩu</h3>
+    <input id="newPassword" type="password" placeholder="Mật khẩu mới">
+    <br><br><button onclick="changePassword()">Đổi mật khẩu</button>
+    <button class="danger" onclick="logout()">Đăng xuất</button>
+  </section>
+</section>
+</main>
+
+<script>
+const SUPABASE_URL="https://xbpaaujqutnarezfkcrp.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_qvaULo72eeaShRmD5KcGEw_4ZpE-wFk";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+let currentUser=null,currentProfile=null,allShifts=[];
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+const normalizeEmail=e=>e.trim().toLowerCase();
+const validEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+function msg(text,type="notice",target="authMsg"){document.getElementById(target).innerHTML=`<div class="${type}">${esc(text)}</div>`}
+function showRegister(){loginForm.classList.add("hidden");resetForm.classList.add("hidden");registerForm.classList.remove("hidden");authMsg.innerHTML=""}
+function showLogin(){registerForm.classList.add("hidden");resetForm.classList.add("hidden");loginForm.classList.remove("hidden");authMsg.innerHTML=""}
+function resetPassword(){loginForm.classList.add("hidden");registerForm.classList.add("hidden");resetForm.classList.remove("hidden");authMsg.innerHTML=""}
+function fmtDate(d){return new Date(d+"T00:00:00").toLocaleDateString("vi-VN",{weekday:"short",day:"2-digit",month:"2-digit"})}
+function todayMonday(){let d=new Date(),day=d.getDay(),diff=day===0?-6:1-day;d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d}
+function iso(d){return d.toISOString().slice(0,10)}
+function profileRow(user,name,email,role="employee",status="pending"){return{id:user.id,full_name:name,email,phone:null,role,status}}
+function setClock(){let d=new Date(),h=d.getHours(),g=h<11?"Chào buổi sáng":h<18?"Chào buổi chiều":"Chào buổi tối";clock.innerHTML=`${d.toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"})}<span>${g}</span>`}
+setClock();setInterval(setClock,1000);
+
+async function register(){
+  const name=regName.value.trim(),email=normalizeEmail(regEmail.value),p=regPassword.value,p2=regPassword2.value;
+  if(!name||!email||!p)return msg("Vui lòng nhập đủ thông tin.","error");
+  if(!validEmail(email))return msg("Email chưa đúng định dạng.","error");
+  if(p.length<6)return msg("Mật khẩu phải có ít nhất 6 ký tự.","error");
+  if(p!==p2)return msg("Hai mật khẩu không giống nhau.","error");
+  const {data,error}=await sb.auth.signUp({email,password:p,options:{data:{full_name:name}}});
+  if(error){
+    const t=error.message.toLowerCase();
+    if(t.includes("rate limit"))return msg("Supabase đang giới hạn email. Không bấm đăng ký liên tục; hãy chờ rồi thử lại hoặc xác nhận tài khoản đã có trong Authentication → Users.","error");
+    return msg(error.message,"error");
+  }
+  if(!data.user)return msg("Không tạo được tài khoản.","error");
+  if(data.session){
+    const {error:pe}=await sb.from("profiles").upsert(profileRow(data.user,name,email),{onConflict:"id"});
+    if(pe){await sb.auth.signOut();return msg("Tạo tài khoản nhưng chưa tạo hồ sơ: "+pe.message,"error")}
+    await sb.auth.signOut();showLogin();return msg("Đăng ký thành công. Tài khoản đang chờ Admin duyệt.","success");
+  }
+  showLogin();msg("Tài khoản đã tạo nhưng email chưa được xác nhận. Nếu bạn muốn đăng ký không cần xác nhận email, hãy tắt Email Confirm trong Supabase Authentication → Providers → Email.","success");
+}
+
+async function login(){
+  const email=normalizeEmail(loginEmail.value),password=loginPassword.value;
+  if(!validEmail(email))return msg("Vui lòng nhập Gmail / Email hợp lệ.","error");
+  if(!password)return msg("Vui lòng nhập mật khẩu.","error");
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){
+    if(error.message.toLowerCase().includes("email not confirmed"))return msg("Email chưa được xác nhận. Admin có thể xác nhận tài khoản trong Supabase → Authentication → Users.","error");
+    return msg(error.message,"error");
+  }
+  await loadUser(data.user);
+}
+
+async function loadUser(user){
+  currentUser=user;
+  let {data:profile,error}=await sb.from("profiles").select("*").eq("id",user.id).maybeSingle();
+  if(error){await sb.auth.signOut();return msg(error.message,"error")}
+  if(!profile){
+    const name=user.user_metadata?.full_name||user.email?.split("@")[0]||"Nhân viên";
+    const {data:p,error:pe}=await sb.from("profiles").upsert(profileRow(user,name,user.email||""),{onConflict:"id"}).select().maybeSingle();
+    if(pe){await sb.auth.signOut();return msg(pe.message,"error")} profile=p;
+  }
+  currentProfile=profile;
+  if(profile.status!=="approved"){
+    await sb.auth.signOut();
+    return msg(profile.status==="locked"?"Tài khoản đang bị khóa.":"Tài khoản đang chờ Admin duyệt.","error");
+  }
+  authView.classList.add("hidden");appView.classList.remove("hidden");appHeader.classList.remove("hidden");
+  userLabel.textContent=`${profile.full_name} · ${profile.role==="admin"?"Quản trị viên · Admin":"Nhân viên"}`;
+  tabAdmin.classList.toggle("hidden",profile.role!=="admin");
+  showTab("schedule");await refresh();
+}
+
+function showTab(tab){
+  ["schedule","mine","rank","admin","account"].forEach(x=>document.getElementById(x+"Tab").classList.toggle("hidden",x!==tab));
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  const b=document.getElementById("tab"+tab.charAt(0).toUpperCase()+tab.slice(1));if(b)b.classList.add("active");
+  if(tab==="mine")renderMine();if(tab==="rank")renderRanking();if(tab==="admin"&&currentProfile?.role==="admin")renderAdmin();if(tab==="account")renderAccount();
+}
+
+async function refresh(){
+  const mon=todayMonday(),end=new Date(mon);end.setDate(end.getDate()+6);
+  const {data,error}=await sb.from("shift_requests").select("*").gte("shift_date",iso(mon)).lte("shift_date",iso(end)).order("shift_date").order("shift");
+  if(error)return msg(error.message,"error","globalMsg");
+  allShifts=data||[];renderSchedule();renderMine();await renderRanking();if(currentProfile?.role==="admin")await renderAdmin();
+}
+
+function renderSchedule(){
+  const mon=todayMonday(),days=Array.from({length:7},(_,i)=>{let d=new Date(mon);d.setDate(d.getDate()+i);return d});
+  const shifts=["Ca 1","Ca 2","Ca 3"],times={"Ca 1":"07:00–12:00","Ca 2":"12:00–17:00","Ca 3":"17:00–23:00"};
+  let h='<div class="head">Ca</div>'+days.map(d=>`<div class="head">${d.toLocaleDateString("vi-VN",{weekday:"short"})}<br>${d.toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit"})}</div>`).join("");
+  shifts.forEach(s=>{h+=`<div class="shift">${s}<br><small>${times[s]}</small></div>`;days.forEach(d=>{
+    const date=iso(d),approved=allShifts.find(x=>x.shift_date===date&&x.shift===s&&x.status==="approved");
+    const mine=allShifts.find(x=>x.shift_date===date&&x.shift===s&&x.user_id===currentUser.id&&!["rejected","cancelled"].includes(x.status));
+    h+=`<div>${approved?`<div class="occupant">👤 ${esc(approved.user_name||"Nhân viên")}</div>`:`<div class="free">Chưa có người</div>`}
+      ${mine&&mine.status==="pending"?`<br><span class="pill">⏳ Chờ duyệt</span>`:""}
+      ${!approved&&!mine&&currentProfile.role==="employee"?`<br><button onclick="requestShift('${date}','${s}')">Đăng ký</button>`:""}
+      ${mine?`<br><button class="secondary" onclick="cancelShift(${mine.id})">Hủy đăng ký</button>`:""}
+    </div>`;
+  })});
+  schedule.innerHTML=h;
+}
+
+async function requestShift(date,shift){
+  const existing=allShifts.find(x=>x.shift_date===date&&x.shift===shift&&["pending","approved"].includes(x.status));
+  if(existing)return msg("Ca này đã có người đăng ký hoặc đang chờ duyệt.","error","globalMsg");
+  const {error}=await sb.from("shift_requests").insert({user_id:currentUser.id,user_name:currentProfile.full_name,shift_date:date,shift,status:"pending"});
+  if(error)return msg(error.message,"error","globalMsg");
+  msg("Đã gửi đăng ký ca. Chờ Admin duyệt.","success","globalMsg");await refresh();
+}
+async function cancelShift(id){
+  const {error}=await sb.from("shift_requests").update({status:"cancelled"}).eq("id",id).eq("user_id",currentUser.id);
+  if(error)return msg(error.message,"error","globalMsg");await refresh();
+}
+function renderMine(){
+  const mine=allShifts.filter(x=>x.user_id===currentUser?.id).sort((a,b)=>a.shift_date.localeCompare(b.shift_date));
+  mineList.innerHTML=mine.length?mine.map(x=>`<div class="notice"><b>${fmtDate(x.shift_date)} · ${esc(x.shift)}</b><br>${x.status==="approved"?"✅ Đã duyệt":x.status==="pending"?"⏳ Chờ duyệt":x.status==="cancelled"?"↩️ Đã hủy":"❌ Từ chối"}</div>`).join(""):"<p>Chưa có ca đăng ký.</p>";
+}
+async function renderRanking(){
+  const {data,error}=await sb.from("shift_requests").select("user_id,user_name,shift,status").eq("status","approved");
+  if(error){ranking.innerHTML="<p>Không tải được bảng xếp hạng.</p>";return}
+  const hours={"Ca 1":5,"Ca 2":5,"Ca 3":6},map={};
+  (data||[]).forEach(x=>{let k=x.user_id;if(!map[k])map[k]={name:x.user_name||"Nhân viên",hours:0};map[k].hours+=hours[x.shift]||0});
+  const arr=Object.values(map).sort((a,b)=>b.hours-a.hours||a.name.localeCompare(b.name,"vi"));
+  ranking.innerHTML=arr.length?arr.map((x,i)=>`<div class="rank"><div class="rank-num">${i+1}</div><div><b>${esc(x.name)}</b><br>${x.hours} giờ</div></div>`).join(""):"<p>Chưa có dữ liệu giờ làm.</p>";
+}
+
+async function renderAdmin(){
+  const {data:profiles,error}=await sb.from("profiles").select("*").order("status").order("created_at",{ascending:false});
+  if(error)return msg(error.message,"error","globalMsg");
+  employees.innerHTML=(profiles||[]).map(p=>{
+    let actions="—";
+    if(p.id!==currentUser.id){
+      if(p.status==="approved")actions=`<button class="danger" onclick="setStatus('${p.id}','locked')">Khóa</button>`;
+      else if(p.status==="locked")actions=`<button onclick="setStatus('${p.id}','approved')">Mở khóa</button>`;
+      else actions=`<button onclick="setStatus('${p.id}','approved')">Duyệt</button><button class="danger" onclick="setStatus('${p.id}','locked')">Từ chối/khóa</button>`;
+    }
+    const email=p.email||p.phone||"";
+    return `<tr><td>${esc(p.full_name)}</td><td>${esc(email)}</td><td>${esc(p.status)}</td><td>${esc(p.role)}</td><td>${actions}</td></tr>`;
+  }).join("");
+  const {data:req,error:re}=await sb.from("shift_requests").select("*").in("status",["pending","approved"]).order("shift_date").order("shift");
+  if(re)return msg(re.message,"error","globalMsg");
+  requests.innerHTML=(req||[]).map(r=>`<tr><td>${esc(r.user_name)}</td><td>${fmtDate(r.shift_date)}</td><td>${esc(r.shift)}</td><td>${esc(r.status)}</td><td>${r.status==="pending"?`<button onclick="approveShift(${r.id})">Duyệt</button><button class="danger" onclick="rejectShift(${r.id})">Từ chối</button>`:"Đã duyệt"}</td></tr>`).join("");
+}
+async function setStatus(id,status){const {error}=await sb.from("profiles").update({status}).eq("id",id);if(error)return msg(error.message,"error","globalMsg");await refresh()}
+async function approveShift(id){
+  const row=allShifts.find(x=>x.id===id);
+  if(!row)return;
+  const occupied=allShifts.find(x=>x.id!==id&&x.shift_date===row.shift_date&&x.shift===row.shift&&x.status==="approved");
+  if(occupied)return msg(`Ca này đã được duyệt cho ${occupied.user_name}.`,"error","globalMsg");
+  const {error}=await sb.from("shift_requests").update({status:"approved",approved_at:new Date().toISOString()}).eq("id",id);
+  if(error)return msg(error.message,"error","globalMsg");
+  await refresh();
+}
+async function rejectShift(id){const {error}=await sb.from("shift_requests").update({status:"rejected"}).eq("id",id);if(error)return msg(error.message,"error","globalMsg");await refresh()}
+function renderAccount(){accountInfo.innerHTML=`<div class="notice"><b>${esc(currentProfile.full_name)}</b><br>${esc(currentProfile.email||currentProfile.phone||"")}<br>Quyền: ${currentProfile.role==="admin"?"Quản trị viên":"Nhân viên"}</div>`}
+async function changePassword(){const p=newPassword.value;if(p.length<6)return msg("Mật khẩu mới phải có ít nhất 6 ký tự.","error","globalMsg");const {error}=await sb.auth.updateUser({password:p});if(error)return msg(error.message,"error","globalMsg");newPassword.value="";msg("Đổi mật khẩu thành công.","success","globalMsg")}
+async function logout(){await sb.auth.signOut();location.reload()}
+async function sendReset(){
+  const email=normalizeEmail(resetEmail.value);if(!validEmail(email))return msg("Nhập Gmail hợp lệ.","error");
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href});
+  if(error)return msg(error.message,"error");msg("Đã gửi link đặt lại mật khẩu. Kiểm tra Gmail.","success");
+}
+async function boot(){
+  const {data}=await sb.auth.getSession();
+  if(data.session)await loadUser(data.session.user);
+}
+boot();
+</script>
+</body>
+</html>
